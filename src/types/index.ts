@@ -1,4 +1,4 @@
-export type ModuleKey =
+﻿export type ModuleKey =
   | 'dashboard'
   | 'aws'
   | 'linux'
@@ -7,6 +7,8 @@ export type ModuleKey =
   | 'docker'
   | 'kubernetes'
   | 'terraform'
+  | 'ansible'
+  | 'observability'
   | 'automation'
   | 'apache'
   | 'monitoring'
@@ -145,3 +147,4 @@ export interface TroubleshootIssue {
   fixes: string[];
   logSnippet?: string;
 }
+

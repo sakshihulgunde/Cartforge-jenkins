@@ -1,4 +1,4 @@
-import { useAuth } from '@/context/AuthContext';
+﻿import { useAuth } from '@/context/AuthContext';
 import { Search, Bell, Command, Activity, ChevronRight } from 'lucide-react';
 import type { ModuleKey } from '@/types';
 
@@ -12,6 +12,8 @@ const TITLES: Record<ModuleKey, { title: string; crumb: string }> = {
   docker: { title: 'Docker', crumb: 'Containerization' },
   kubernetes: { title: 'Kubernetes', crumb: 'Container Orchestration' },
   terraform: { title: 'Terraform', crumb: 'Infrastructure as Code' },
+  ansible: { title: 'Ansible', crumb: 'Automation' },
+  observability: { title: 'Monitoring & Observability', crumb: 'Prometheus & Grafana' },
 	automation: { title: 'Automation', crumb: 'Automation Scripts' },
 	apache: { title: 'Apache', crumb: 'Web Server' },
     monitoring: { title: 'Monitoring', crumb: 'Observability' },
@@ -66,3 +68,4 @@ export default function Topbar({ current }: { current: ModuleKey }) {
     </header>
   );
 }
+

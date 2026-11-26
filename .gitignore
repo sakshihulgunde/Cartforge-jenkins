@@ -1,25 +1,40 @@
-﻿node_modules/
-dist/
+﻿# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables and secrets
 .env
 .env.*
 !.env.example
 
+# Archives and backups
 *.zip
-
 *.backup
 *.backup.*
+*.backup*
 *.before-*
 *.bak
 *.broken.bak
+backup-*/
 
-Jenkinsfile.txt
+# Local Terraform workspaces and state
+server/terraform-workspaces/
+*.tfstate
+*.tfstate.*
+.terraform/
 
-.vscode/
-.idea/
+# Build outputs
+dist/
+build/
 
-.DS_Store
-Thumbs.db
+# Logs
+*.log
+logs/
 npm-debug.log*
 
-server/*backup*
-server/*.bak
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

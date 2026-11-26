@@ -474,8 +474,6 @@ export function JenkinsPlugins() {
     </div>
   );
 }
-
-/* ============================ CREDENTIALS ============================ */
 export function JenkinsCredentials() {
   const kindIcon: Record<string, typeof Key> = {
     'username-password': Key,
@@ -483,16 +481,276 @@ export function JenkinsCredentials() {
     'secret-text': ShieldCheck,
     'aws-credentials': Cloud,
   };
+
+  type Credential = {
+    id: string;
+    name: string;
+    kind: string;
+    scope: string;
+    description: string;
+    lastUsed: string;
+    username?: string;
+    secret?: string;
+  };
+
+  const [credentials, setCredentials] = useState<Credential[]>(
+    CREDENTIALS.map((c) => ({
+      ...c,
+      name: c.name,
+    }))
+  );
+
+  const [showCreate, setShowCreate] = useState(false);
+
+  const [form, setForm] = useState({
+    id: '',
+    kind: 'username-password',
+    username: '',
+    secret: '',
+    description: '',
+  });
+
+  const resetForm = () => {
+    setForm({
+      id: '',
+      kind: 'username-password',
+      username: '',
+      secret: '',
+      description: '',
+    });
+  };
+
+  const handleCreate = () => {
+    const credentialId =
+      form.id.trim() ||
+      `credential-${Date.now()}`;
+
+    if (credentials.some((c) => c.name === credentialId)) {
+      window.alert('A credential with this ID already exists.');
+      return;
+    }
+
+    const newCredential: Credential = {
+      id: `cred-${Date.now()}`,
+      name: credentialId,
+      kind: form.kind,
+      scope: 'global',
+      description:
+        form.description.trim() || 'CartForge Jenkins credential',
+      lastUsed: 'Never',
+      username: form.username,
+      secret: form.secret,
+    };
+
+    setCredentials((prev) => [...prev, newCredential]);
+
+    setShowCreate(false);
+    resetForm();
+  };
+
+  const handleDelete = (id: string) => {
+    const credential = credentials.find((c) => c.id === id);
+
+    if (!credential) return;
+
+    const confirmed = window.confirm(
+      `Delete credential "${credential.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    setCredentials((prev) =>
+      prev.filter((c) => c.id !== id)
+    );
+  };
+
   return (
     <div className="space-y-5">
-      <PageHeader title="Credentials" description="Securely stored secrets used by pipelines via withCredentials()." actions={<Button><Plus size={16} /> Add Credential</Button>} />
+      <PageHeader
+        title="Credentials"
+        description="Securely stored secrets used by pipelines via withCredentials()."
+        actions={
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus size={16} />
+            Add Credential
+          </Button>
+        }
+      />
 
       <Card className="border-warning-500/20 bg-warning-500/5 p-4">
         <div className="flex items-start gap-3 text-sm">
-          <ShieldCheck size={18} className="mt-0.5 shrink-0 text-warning-400" />
-          <p className="text-xs text-ink-300">Credentials are encrypted at rest and injected into builds using the Credentials Binding plugin. Never echo secrets in console output.</p>
+          <ShieldCheck
+            size={18}
+            className="mt-0.5 shrink-0 text-warning-400"
+          />
+          <p className="text-xs text-ink-300">
+            Credentials are encrypted at rest and injected into builds
+            using the Credentials Binding plugin. Never echo secrets in
+            console output.
+          </p>
         </div>
       </Card>
+
+      {showCreate && (
+        <Card className="border-primary-500/30 bg-ink-900/40 p-5">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-white">
+                Add Jenkins Credential
+              </h3>
+              <p className="mt-1 text-xs text-ink-400">
+                Create a credential that can later be used by a pipeline.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreate(false);
+                resetForm();
+              }}
+              className="rounded-md p-2 text-ink-400 hover:bg-ink-800 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-300">
+                Credential Kind
+              </label>
+
+              <select
+                value={form.kind}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    kind: e.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border border-border bg-ink-950 px-3 py-2.5 text-sm text-white outline-none focus:border-primary-500"
+              >
+                <option value="username-password">
+                  Username with password
+                </option>
+                <option value="secret-text">
+                  Secret text
+                </option>
+                <option value="ssh-private-key">
+                  SSH private key
+                </option>
+                <option value="aws-credentials">
+                  AWS credentials
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-300">
+                Credential ID
+              </label>
+
+              <input
+                value={form.id}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    id: e.target.value,
+                  }))
+                }
+                placeholder="dockerhub-credentials"
+                className="w-full rounded-lg border border-border bg-ink-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-ink-600 focus:border-primary-500"
+              />
+            </div>
+
+            {form.kind === 'username-password' && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-ink-300">
+                  Username
+                </label>
+
+                <input
+                  value={form.username}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      username: e.target.value,
+                    }))
+                  }
+                  placeholder="username"
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-border bg-ink-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-ink-600 focus:border-primary-500"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-300">
+                {form.kind === 'ssh-private-key'
+                  ? 'Private Key'
+                  : form.kind === 'aws-credentials'
+                    ? 'Secret / Access Credential'
+                    : form.kind === 'secret-text'
+                      ? 'Secret'
+                      : 'Password / Token'}
+              </label>
+
+              <input
+                type="password"
+                value={form.secret}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    secret: e.target.value,
+                  }))
+                }
+                placeholder="Enter secret"
+                autoComplete="new-password"
+                className="w-full rounded-lg border border-border bg-ink-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-ink-600 focus:border-primary-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-ink-300">
+                Description
+              </label>
+
+              <input
+                value={form.description}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Docker Hub credential for CI/CD pipeline"
+                className="w-full rounded-lg border border-border bg-ink-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-ink-600 focus:border-primary-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowCreate(false);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={handleCreate}
+              disabled={!form.id.trim() || !form.secret.trim()}
+            >
+              <Plus size={16} />
+              Save Credential
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <div className="overflow-hidden rounded-xl border border-border">
         <table className="w-full text-sm">
@@ -501,22 +759,80 @@ export function JenkinsCredentials() {
               <th className="px-4 py-3 text-left font-medium">ID</th>
               <th className="px-4 py-3 text-left font-medium">Kind</th>
               <th className="px-4 py-3 text-left font-medium">Scope</th>
-              <th className="px-4 py-3 text-left font-medium">Description</th>
-              <th className="px-4 py-3 text-left font-medium">Last Used</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+              <th className="px-4 py-3 text-left font-medium">
+                Description
+              </th>
+              <th className="px-4 py-3 text-left font-medium">
+                Last Used
+              </th>
+              <th className="px-4 py-3 text-right font-medium">
+                Actions
+              </th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-border">
-            {CREDENTIALS.map((c) => {
+            {credentials.map((c) => {
               const Icon = kindIcon[c.kind] || Key;
+
               return (
-                <tr key={c.id} className="hover:bg-ink-900/30">
-                  <td className="px-4 py-3 font-mono text-xs text-primary-300">{c.name}</td>
-                  <td className="px-4 py-3"><span className="flex items-center gap-2 text-ink-200"><Icon size={14} className="text-ink-400" /> {c.kind}</span></td>
-                  <td className="px-4 py-3"><Badge variant="info">{c.scope}</Badge></td>
-                  <td className="px-4 py-3 text-ink-400">{c.description}</td>
-                  <td className="px-4 py-3 text-ink-400">{c.lastUsed}</td>
-                  <td className="px-4 py-3 text-right"><Button size="sm" variant="ghost"><Settings2 size={14} /></Button></td>
+                <tr
+                  key={c.id}
+                  className="hover:bg-ink-900/30"
+                >
+                  <td className="px-4 py-3 font-mono text-xs text-primary-300">
+                    {c.name}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <span className="flex items-center gap-2 text-ink-200">
+                      <Icon
+                        size={14}
+                        className="text-ink-400"
+                      />
+                      {c.kind}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <Badge variant="info">
+                      {c.scope}
+                    </Badge>
+                  </td>
+
+                  <td className="px-4 py-3 text-ink-400">
+                    {c.description}
+                  </td>
+
+                  <td className="px-4 py-3 text-ink-400">
+                    {c.lastUsed}
+                  </td>
+
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          window.alert(
+                            `Credential: ${c.name}\nKind: ${c.kind}\nScope: ${c.scope}\n\nSecret values are hidden.`
+                          )
+                        }
+                      >
+                        <Settings2 size={14} />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          handleDelete(c.id)
+                        }
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               );
             })}

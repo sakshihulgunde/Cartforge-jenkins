@@ -1,6 +1,11 @@
-﻿'use strict';
+﻿require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const {
+  analyzeRepository,
+} = require('./services/github-analyzer.service');
 
-require('dotenv').config();
+const {
+  generatePipeline,
+} = require('./services/ai-pipeline-generator.service');
 
 const express = require('express');
 const cors = require('cors');
@@ -8,6 +13,23 @@ const http = require('http');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { WebSocketServer, WebSocket } = require('ws');
+
+const {
+  version: terraformVersion,
+  getFiles: terraformGetFiles,
+  saveFiles: terraformSaveFiles,
+  resetProject: terraformResetProject,
+  init: terraformInit,
+  format: terraformFormat,
+  formatAll: terraformFormatAll,
+  validate: terraformValidate,
+  validateAll: terraformValidateAll,
+  plan: terraformPlan,
+  planAll: terraformPlanAll,
+  stateList: terraformStateList,
+  output: terraformOutput,
+  getStatus: terraformGetStatus,
+} = require('./services/terraform.service');
 
 // ============================================================
 // CONFIGURATION
@@ -360,6 +382,315 @@ CartForge AI editor.
 
 const dockerTerminalSessions = new Map();
 const awsTerminalSessions = new Map();
+
+
+// ============================================================
+// TERRAFORM - SAFE LOCAL MODE
+// ============================================================
+
+// Terraform CLI version
+app.get('/api/terraform/version', async (req, res) => {
+  try {
+    const result = await terraformVersion();
+
+    res.status(result.success ? 200 : 500).json(result);
+  } catch (error) {
+    console.error('[Terraform Version] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to get Terraform version.',
+    });
+  }
+});
+
+// Get all Terraform configuration files
+app.get('/api/terraform/files', async (req, res) => {
+  try {
+    const project = req.query.project || 'terraform-demo';
+
+    const result = await terraformGetFiles(project);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Files] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to load Terraform files.',
+    });
+  }
+});
+
+// Save Terraform configuration files
+app.post('/api/terraform/files', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      files = {},
+    } = req.body || {};
+
+    const result = await terraformSaveFiles(project, files);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Save Files] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to save Terraform files.',
+    });
+  }
+});
+
+// Reset Terraform project
+app.post('/api/terraform/reset', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+    } = req.body || {};
+
+    const result = await terraformResetProject(project);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Reset] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to reset Terraform project.',
+    });
+  }
+});
+
+// Terraform init
+app.post('/api/terraform/init', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      content,
+    } = req.body || {};
+
+    const result = await terraformInit(project, content);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Init] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform initialization failed.',
+    });
+  }
+});
+
+// Terraform format - backwards compatible endpoint
+app.post('/api/terraform/format', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      content,
+    } = req.body || {};
+
+    const result = await terraformFormat(project, content);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Format] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform formatting failed.',
+    });
+  }
+});
+
+// Terraform format all files
+app.post('/api/terraform/format-all', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      files = {},
+    } = req.body || {};
+
+    const result = await terraformFormatAll(project, files);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Format All] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform formatting failed.',
+    });
+  }
+});
+
+// Terraform validate - backwards compatible endpoint
+app.post('/api/terraform/validate', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      content,
+    } = req.body || {};
+
+    const result = await terraformValidate(project, content);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Validate] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform validation failed.',
+    });
+  }
+});
+
+// Terraform validate all files
+app.post('/api/terraform/validate-all', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      files = {},
+    } = req.body || {};
+
+    const result = await terraformValidateAll(project, files);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Validate All] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform validation failed.',
+    });
+  }
+});
+
+// Terraform plan - backwards compatible endpoint
+app.post('/api/terraform/plan', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      content,
+    } = req.body || {};
+
+    const result = await terraformPlan(project, content);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Plan] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform plan failed.',
+    });
+  }
+});
+
+// Terraform plan using all configuration files
+app.post('/api/terraform/plan-all', async (req, res) => {
+  try {
+    const {
+      project = 'terraform-demo',
+      files = {},
+    } = req.body || {};
+
+    const result = await terraformPlanAll(project, files);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Plan All] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Terraform plan failed.',
+    });
+  }
+});
+
+// Terraform state list
+app.get('/api/terraform/state', async (req, res) => {
+  try {
+    const project = req.query.project || 'terraform-demo';
+
+    const result = await terraformStateList(project);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform State] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to read Terraform state.',
+    });
+  }
+});
+
+// Terraform outputs
+app.get('/api/terraform/output', async (req, res) => {
+  try {
+    const project = req.query.project || 'terraform-demo';
+
+    const result = await terraformOutput(project);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Output] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to read Terraform outputs.',
+    });
+  }
+});
+
+// Terraform project status
+app.get('/api/terraform/status', async (req, res) => {
+  try {
+    const project = req.query.project || 'terraform-demo';
+
+    const result = await terraformGetStatus(project);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('[Terraform Status] Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error
+        ? error.message
+        : 'Unable to read Terraform status.',
+    });
+  }
+});
 // ============================================================
 // BASIC ROUTE
 // ============================================================
@@ -3129,6 +3460,306 @@ app.delete(
     }
   }
 );
+
+// ============================================================
+// GITHUB INTEGRATION
+// ============================================================
+
+function githubRequest(path, options = {}) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+
+    const request = https.request(
+      {
+        hostname: 'api.github.com',
+        path,
+        method: 'GET',
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'CartForge',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      },
+      (response) => {
+        let body = '';
+
+        response.setEncoding('utf8');
+
+        response.on('data', (chunk) => {
+          body += chunk;
+        });
+
+        response.on('end', () => {
+          let data = {};
+
+          try {
+            data = body ? JSON.parse(body) : {};
+          } catch {
+            data = { message: body };
+          }
+
+          if (
+            response.statusCode >= 200 &&
+            response.statusCode < 300
+          ) {
+            resolve({
+              statusCode: response.statusCode,
+              data,
+            });
+            return;
+          }
+
+          // GitHub may redirect API requests.
+          // Follow the redirect once.
+          if (
+            [301, 302, 307, 308].includes(response.statusCode) &&
+            response.headers.location
+          ) {
+            const redirectUrl = new URL(
+              response.headers.location
+            );
+
+            const redirectPath =
+              `${redirectUrl.pathname}${redirectUrl.search}`;
+
+            githubRequest(redirectPath)
+              .then(resolve)
+              .catch(reject);
+
+            return;
+          }
+
+          const error = new Error(
+            data.message ||
+            `GitHub returned HTTP ${response.statusCode}`
+          );
+
+          error.statusCode = response.statusCode;
+          error.data = data;
+
+          reject(error);
+        });
+      }
+    );
+
+    request.on('error', reject);
+
+    request.setTimeout(15000, () => {
+      request.destroy(
+        new Error('GitHub request timed out')
+      );
+    });
+
+    request.end(options.body || undefined);
+  });
+}
+
+
+// ------------------------------------------------------------
+// Verify GitHub repository
+// ------------------------------------------------------------
+
+app.post('/api/github/verify', async (req, res) => {
+  try {
+    const repoUrl = String(
+      req.body?.repoUrl || ''
+    ).trim();
+
+    const requestedBranch = String(
+      req.body?.branch || ''
+    ).trim();
+
+    if (!repoUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'GitHub repository URL is required.',
+      });
+    }
+
+    let parsedUrl;
+
+    try {
+      parsedUrl = new URL(repoUrl);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid repository URL.',
+      });
+    }
+
+    if (
+      parsedUrl.hostname !== 'github.com' &&
+      parsedUrl.hostname !== 'www.github.com'
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'Only GitHub repository URLs are supported.',
+      });
+    }
+
+    const parts = parsedUrl.pathname
+      .replace(/^\/+|\/+$/g, '')
+      .split('/');
+
+    if (parts.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error:
+          'Use a GitHub repository URL such as https://github.com/user/project',
+      });
+    }
+
+    const owner = parts[0];
+    const repo = parts[1].replace(/\.git$/, '');
+
+    if (!owner || !repo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Could not determine GitHub owner and repository.',
+      });
+    }
+
+    // Get repository information
+    const repositoryResult = await githubRequest(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+    );
+
+    const repository = repositoryResult.data;
+
+    // Determine branch
+    const branch =
+      requestedBranch ||
+      repository.default_branch ||
+      'main';
+
+    // Verify branch exists
+    const branchResult = await githubRequest(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branch)}`
+    );
+
+    const branchData = branchResult.data;
+
+    // Get latest commit
+    const latestCommit = branchData.commit || {};
+
+    res.json({
+      success: true,
+
+      repository: {
+        owner: repository.owner?.login || owner,
+        name: repository.name || repo,
+        fullName:
+          repository.full_name ||
+          `${owner}/${repo}`,
+
+        url:
+          repository.html_url ||
+          `https://github.com/${owner}/${repo}`,
+
+        cloneUrl:
+          repository.clone_url ||
+          `https://github.com/${owner}/${repo}.git`,
+
+        defaultBranch:
+          repository.default_branch ||
+          'main',
+
+        private:
+          Boolean(repository.private),
+
+        description:
+          repository.description || '',
+      },
+
+      branch: {
+        name: branch,
+        protected:
+          Boolean(branchData.protected),
+      },
+
+      latestCommit: {
+        sha:
+          latestCommit.sha || '',
+        message:
+          latestCommit.commit?.message ||
+          '',
+        author:
+          latestCommit.commit?.author?.name ||
+          latestCommit.author?.login ||
+          '',
+        date:
+          latestCommit.commit?.author?.date ||
+          '',
+      },
+
+      verification: {
+        repositoryAccessible: true,
+        branchAccessible: true,
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      'GitHub repository verification error:',
+      error.message
+    );
+
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error:
+        error.message ||
+        'Failed to verify GitHub repository.',
+      details: error.data || null,
+    });
+  }
+});
+
+
+// ------------------------------------------------------------
+// GitHub repository configuration
+// ------------------------------------------------------------
+
+app.post('/api/github/config', async (req, res) => {
+  try {
+    const repoUrl = String(
+      req.body?.repoUrl || ''
+    ).trim();
+
+    const branch = String(
+      req.body?.branch || 'main'
+    ).trim();
+
+    if (!repoUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Repository URL is required.',
+      });
+    }
+
+    res.json({
+      success: true,
+      configuration: {
+        repoUrl,
+        branch: branch || 'main',
+        connectedToJenkins: true,
+        webhookFlow:
+          'GitHub → Webhook → Jenkins',
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      'GitHub configuration error:',
+      error.message
+    );
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // ============================================================
 // JENKINS INTEGRATION
 // ============================================================
@@ -3233,7 +3864,7 @@ function jenkinsRequest(path, options = {}) {
       );
     });
 
-    request.end();
+    request.end(options.body || undefined);
   });
 }
 
@@ -3268,6 +3899,101 @@ app.get('/api/jenkins/status', async (req, res) => {
 });
 
 
+
+// ------------------------------------------------------------
+// Analyze GitHub repository for AI pipeline generation
+// ------------------------------------------------------------
+
+app.post('/api/github/analyze', async (req, res) => {
+  try {
+    const repoUrl = String(
+      req.body?.repoUrl || ''
+    ).trim();
+
+    const branch = String(
+      req.body?.branch || ''
+    ).trim();
+
+    if (!repoUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Repository URL is required.',
+      });
+    }
+
+    const analysis = await analyzeRepository(
+      repoUrl,
+      branch
+    );
+
+    return res.json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    console.error(
+      '[GitHub Analyze] Error:',
+      error?.message || error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error?.message ||
+        'Unable to analyze GitHub repository.',
+    });
+  }
+});
+// ------------------------------------------------------------
+// Generate repository-specific Jenkins pipeline
+// ------------------------------------------------------------
+
+app.post('/api/github/generate-pipeline', async (req, res) => {
+  try {
+    const repoUrl = String(
+      req.body?.repoUrl || ''
+    ).trim();
+
+    const branch = String(
+      req.body?.branch || ''
+    ).trim();
+
+    if (!repoUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Repository URL is required.',
+      });
+    }
+
+    const analysis = await analyzeRepository(
+      repoUrl,
+      branch
+    );
+
+    const pipelineScript = generatePipeline(
+      analysis
+    );
+
+    return res.json({
+      success: true,
+      repository: analysis.repository,
+      analysis,
+      pipelineScript,
+    });
+  } catch (error) {
+    console.error(
+      '[GitHub Generate Pipeline] Error:',
+      error?.message || error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error?.message ||
+        'Unable to generate Jenkins pipeline.',
+    });
+  }
+});
 // ------------------------------------------------------------
 // Jenkins jobs
 // ------------------------------------------------------------
@@ -3299,6 +4025,217 @@ app.get('/api/jenkins/jobs', async (req, res) => {
   }
 });
 
+
+// ------------------------------------------------------------
+// Create Jenkins Pipeline job from GitHub repository
+// ------------------------------------------------------------
+
+
+app.post('/api/jenkins/create-job', async (req, res) => {
+  try {
+    const {
+      repositoryUrl,
+      branch = 'main',
+      jobName,
+      pipelineSource = 'existing',
+      pipelineScript,
+    } = req.body || {};
+
+    if (!repositoryUrl || typeof repositoryUrl !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'repositoryUrl is required',
+      });
+    }
+
+    let parsedRepositoryUrl;
+
+    try {
+      parsedRepositoryUrl = new URL(repositoryUrl);
+    } catch {
+      return res.status(400).json({
+        success: false,
+        error: 'A valid GitHub repository URL is required',
+      });
+    }
+
+    if (
+      parsedRepositoryUrl.hostname.toLowerCase() !== 'github.com' ||
+      parsedRepositoryUrl.pathname.split('/').filter(Boolean).length !== 2
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'Use a GitHub repository URL such as https://github.com/owner/repo',
+      });
+    }
+
+    const allowedSources = ['existing', 'ai', 'custom'];
+
+    if (!allowedSources.includes(pipelineSource)) {
+      return res.status(400).json({
+        success: false,
+        error: 'pipelineSource must be existing, ai, or custom',
+      });
+    }
+
+    const finalJobName =
+      String(jobName || parsedRepositoryUrl.pathname.split('/').filter(Boolean)[1])
+        .trim()
+        .replace(/[\\/:*?"<>|]/g, '-');
+
+    if (!finalJobName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Unable to determine Jenkins job name',
+      });
+    }
+
+    let safePipelineScript = '';
+
+    if (pipelineSource === 'ai' || pipelineSource === 'custom') {
+      if (typeof pipelineScript !== 'string' || !pipelineScript.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'pipelineScript is required for AI and Custom pipelines',
+        });
+      }
+
+      if (pipelineScript.length > 100000) {
+        return res.status(413).json({
+          success: false,
+          error: 'Pipeline script is too large (maximum 100 KB)',
+        });
+      }
+
+      safePipelineScript = pipelineScript.trim();
+    }
+
+    const escapeXml = (value) =>
+      String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+    const safeRepositoryUrl = escapeXml(repositoryUrl.trim());
+    const safeBranch = escapeXml(String(branch).trim() || 'main');
+
+    let definitionXml;
+    let pipelineLabel;
+
+    if (pipelineSource === 'existing') {
+      definitionXml = `
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>${safeRepositoryUrl}</url>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/${safeBranch}</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="empty-list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>Jenkinsfile</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>`;
+
+      pipelineLabel = 'SCM';
+    } else {
+      definitionXml = `
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>${escapeXml(safePipelineScript)}</script>
+    <sandbox>true</sandbox>
+  </definition>`;
+
+      pipelineLabel = pipelineSource === 'ai' ? 'AI' : 'Custom';
+    }
+
+    const xml = `
+<flow-definition plugin="workflow-job">
+  <actions/>
+  <description>CartForge ${pipelineLabel} Pipeline for ${safeRepositoryUrl}</description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  ${definitionXml}
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>`.trim();
+
+    // Do not overwrite an existing Jenkins job.
+    try {
+      const existing = await jenkinsRequest(
+        `/job/${encodeURIComponent(finalJobName)}/api/json`
+      );
+
+      return res.status(200).json({
+        success: true,
+        created: false,
+        reused: true,
+        message:
+          'A Jenkins job with this name already exists. Its configuration was not changed.',
+        job: {
+          name: finalJobName,
+          url:
+            existing.data?.url ||
+            `${getJenkinsConfig().baseUrl}/job/${encodeURIComponent(finalJobName)}/`,
+          repositoryUrl,
+          branch,
+          pipelineSource,
+        },
+      });
+    } catch (error) {
+      if (error.statusCode !== 404) {
+        throw error;
+      }
+    }
+
+    const createResult = await jenkinsRequest(
+      `/createItem?name=${encodeURIComponent(finalJobName)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/xml; charset=utf-8',
+        },
+        body: xml,
+      }
+    );
+
+    const jobUrl =
+      `${getJenkinsConfig().baseUrl}/job/${encodeURIComponent(finalJobName)}/`;
+
+    return res.status(201).json({
+      success: true,
+      created: true,
+      message: 'Jenkins Pipeline job created successfully.',
+      statusCode: createResult.statusCode,
+      job: {
+        name: finalJobName,
+        url: jobUrl,
+        repositoryUrl,
+        branch,
+        type: 'pipeline',
+        pipelineSource,
+        jenkinsfile: pipelineSource === 'existing' ? 'Jenkinsfile' : null,
+      },
+    });
+  } catch (error) {
+    console.error('Jenkins create pipeline job error:', error.message);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message,
+      details: error.data || null,
+    });
+  }
+});
 
 // ------------------------------------------------------------
 // Trigger Jenkins build
@@ -3591,6 +4528,9 @@ process.on(
   'SIGTERM',
   () => shutdown('SIGTERM')
 );
+
+
+
 
 
 

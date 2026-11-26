@@ -1,594 +1,297 @@
-
-import {
-  Card,
-  StatCard,
-  StatusBadge,
-  PageHeader,
-  Button,
-  Badge,
-} from '@/components/ui';
-
-import {
-  SERVER_INFO,
-  BUILDS,
-  PIPELINES,
-  AGENTS,
-  DEPLOYMENTS,
-  PLUGINS,
-} from '@/data/jenkinsData';
-
-import {
-  Workflow,
-  CheckCircle2,
-  XCircle,
-  Server,
-  GitBranch,
+﻿import {
   Activity,
-  Clock,
-  Cpu,
-  Plug,
-  ShieldCheck,
-  Database,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
   Rocket,
-  HardDrive,
+  Server,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 
+import type { LucideIcon } from 'lucide-react';
 import type { ModuleKey } from '@/types';
+
+interface ModuleCard {
+  key: ModuleKey;
+  title: string;
+  description: string;
+  logoUrls: string[];
+  iconColor: string;
+  status: string;
+  featured?: boolean;
+}
+
+const modules: ModuleCard[] = [
+  {
+    key: 'aws',
+    title: 'EC2 / AWS Labs',
+    description: 'Explore AWS services with safe simulation. Learn EC2, S3, IAM and VPC without provisioning real resources.',
+    logoUrls: ['https://cdn.simpleicons.org/amazonaws/FF9900'],
+    iconColor: 'text-orange-400',
+    status: 'Simulation Mode',
+    featured: true,
+  },
+  {
+    key: 'terraform',
+    title: 'Terraform',
+    description: 'Practice Infrastructure as Code, validation and safe Terraform workflows.',
+    logoUrls: ['https://cdn.simpleicons.org/terraform/844FBA'],
+    iconColor: 'text-violet-400',
+    status: 'Ready',
+  },
+  {
+    key: 'github',
+    title: 'GitHub',
+    description: 'Manage repositories, branches, commits and webhooks for CI/CD.',
+    logoUrls: ['https://cdn.simpleicons.org/github/FFFFFF'],
+    iconColor: 'text-white',
+    status: 'Open module',
+  },
+  {
+    key: 'jenkins',
+    title: 'Jenkins',
+    description: 'Explore jobs, pipeline execution, build logs and build history.',
+    logoUrls: ['https://cdn.simpleicons.org/jenkins/D24939'],
+    iconColor: 'text-sky-400',
+    status: 'Open module',
+  },
+  {
+    key: 'docker',
+    title: 'Docker',
+    description: 'Learn container images, containers and application packaging.',
+    logoUrls: ['https://cdn.simpleicons.org/docker/2496ED'],
+    iconColor: 'text-sky-400',
+    status: 'Open module',
+  },
+  {
+    key: 'kubernetes',
+    title: 'Kubernetes',
+    description: 'Explore deployments, pods, services and orchestration.',
+    logoUrls: ['https://cdn.simpleicons.org/kubernetes/326CE5'],
+    iconColor: 'text-blue-400',
+    status: 'Open module',
+  },
+  {
+    key: 'ansible',
+    title: 'Ansible',
+    description: 'Practice inventories, playbooks and configuration automation.',
+    logoUrls: ['https://cdn.simpleicons.org/ansible/EE0000'],
+    iconColor: 'text-rose-300',
+    status: 'Open module',
+  },
+  {
+    key: 'linux',
+    title: 'Linux',
+    description: 'Learn commands, permissions, processes and system administration.',
+    logoUrls: ['https://cdn.simpleicons.org/linux/FCC624'],
+    iconColor: 'text-amber-300',
+    status: 'Open module',
+  },
+  {
+    key: 'observability',
+    title: 'Monitoring',
+    description: 'Explore Prometheus metrics, Grafana dashboards and alerting.',
+    logoUrls: ['https://cdn.simpleicons.org/prometheus/E6522C', 'https://cdn.simpleicons.org/grafana/F46800'],
+    iconColor: 'text-emerald-300',
+    status: 'Open module',
+  },
+];
+
+const pipelineStages: {
+  name: string;
+  detail: string;
+  key: ModuleKey;
+  logoUrl: string;
+}[] = [
+    { name: 'GitHub', detail: 'Source code', key: 'github', logoUrl: 'https://cdn.simpleicons.org/github/FFFFFF' },
+    { name: 'Jenkins', detail: 'Build & test', key: 'jenkins', logoUrl: 'https://cdn.simpleicons.org/jenkins/D24939' },
+    { name: 'Docker', detail: 'Container image', key: 'docker', logoUrl: 'https://cdn.simpleicons.org/docker/2496ED' },
+    { name: 'Kubernetes', detail: 'Deployment', key: 'kubernetes', logoUrl: 'https://cdn.simpleicons.org/kubernetes/326CE5' },
+  ];
 
 export default function Dashboard({
   onNavigate,
 }: {
-  onNavigate: (k: ModuleKey) => void;
+  onNavigate: (key: ModuleKey) => void;
 }) {
-  const successBuilds = BUILDS.filter(
-    (b) => b.status === 'success'
-  ).length;
-
-  const failedBuilds = BUILDS.filter(
-    (b) => b.status === 'failed'
-  ).length;
-
-  const onlineAgents = AGENTS.filter(
-    (a) => a.status === 'online'
-  ).length;
-
-  const activePipelines = PIPELINES.filter(
-    (p) => p.enabled
-  ).length;
-
   return (
-    <div className="min-h-full bg-slate-50 p-6">
-
-      {/* =========================
-          PAGE HEADER
-      ========================== */}
-      <div className="mb-6">
-  <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-    Jenkins Overview
-  </h1>
-
-  <p className="mt-1 text-sm text-slate-500">
-    CI/CD server management and deployment overview
-  </p>
-
-  <div className="mt-4 flex flex-wrap gap-2.5">
-    <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 shadow-sm">
-      Pipelines
-    </span>
-
-    <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm">
-      Agents
-    </span>
-
-    <span className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 shadow-sm">
-      Webhooks
-    </span>
-
-    <span className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700 shadow-sm">
-      Credentials
-    </span>
-
-    <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-bold text-cyan-700 shadow-sm">
-      Artifacts
-    </span>
-
-    <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-sm">
-      Deployments
-    </span>
-  </div>
-</div>
-
-
-      {/* =========================
-          JENKINS SYSTEM STATS
-      ========================== */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-start gap-4">
-
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50">
-              <Workflow
-                size={25}
-                className="text-blue-600"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Jobs
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-slate-900">
-                {activePipelines}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                configured
-              </p>
-            </div>
-
-          </div>
-        </Card>
-
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-start gap-4">
-
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-50">
-              <Cpu
-                size={25}
-                className="text-green-600"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Executors Online
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-slate-900">
-                {SERVER_INFO.executorsOnline}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                {SERVER_INFO.executorsBusy} busy
-              </p>
-            </div>
-
-          </div>
-        </Card>
-
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-start gap-4">
-
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-orange-50">
-              <Plug
-                size={25}
-                className="text-orange-500"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Plugins
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-slate-900">
-                {PLUGINS.length}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                {PLUGINS.filter((p) => p.hasUpdate).length} updates
-              </p>
-            </div>
-
-          </div>
-        </Card>
-
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-start gap-4">
-
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-purple-50">
-              <Server
-                size={25}
-                className="text-purple-600"
-              />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Agents
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-slate-900">
-                {AGENTS.length}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                {onlineAgents} online
-              </p>
-            </div>
-
-          </div>
-        </Card>
-
-      </div>
-
-
-      {/* =========================
-          BUILD SUMMARY
-      ========================== */}
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Current Build
-              </p>
-
-              <h2 className="mt-3 text-xl font-bold text-slate-900">
-                Cartforge-Freestyle #3
-              </h2>
-
-              <p className="mt-2 text-sm font-medium text-blue-600">
-                Stage: Build &amp; Deploy
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-blue-50 p-3">
-              <Rocket
-                size={22}
-                className="text-blue-600"
-              />
-            </div>
-
-          </div>
-        </Card>
-
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Last Build
-              </p>
-
-              <h2 className="mt-3 text-xl font-bold text-green-600">
-                Success
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                1m 24s · #3
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-green-50 p-3">
-              <CheckCircle2
-                size={22}
-                className="text-green-600"
-              />
-            </div>
-
-          </div>
-        </Card>
-
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Avg Build Time
-              </p>
-
-              <h2 className="mt-3 text-xl font-bold text-slate-900">
-                1m 21s
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                last 3 builds
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-orange-50 p-3">
-              <Clock
-                size={22}
-                className="text-orange-500"
-              />
-            </div>
-
-          </div>
-        </Card>
-
-
-        <Card className="border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Success Rate
-              </p>
-
-              <h2 className="mt-3 text-xl font-bold text-green-600">
-                100%
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                CartForge builds
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-green-50 p-3">
-              <ShieldCheck
-                size={22}
-                className="text-green-600"
-              />
-            </div>
-
-          </div>
-        </Card>
-
-      </div>
-
-
-      {/* =========================
-          BUILD HISTORY + DEPLOYMENT
-      ========================== */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
-
-        {/* Build History */}
-        <Card className="border-slate-200 bg-white p-5 shadow-sm xl:col-span-3">
-
-          <div className="mb-5 flex items-center justify-between">
-
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
-                Build History
-              </h2>
-
-              <p className="mt-1 text-xs text-slate-500">
-                Recent CartForge Jenkins builds
-              </p>
-            </div>
-
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => onNavigate('jenkins')}
-            >
-              View Jobs
-            </Button>
-
-          </div>
-
-          <div className="space-y-2">
-
-            {BUILDS.slice(0, 3).map((b) => (
-
-              <div
-                key={b.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-              >
-
-                <StatusBadge status={b.status} />
-
-                <span className="font-mono text-sm font-semibold text-slate-700">
-                  #{b.number}
-                </span>
-
-                <span className="min-w-36 flex-1 text-sm font-semibold text-slate-900">
-                  {b.pipeline}
-                </span>
-
-                <span className="text-xs text-slate-500">
-                  {b.branch}
-                </span>
-
-                <span className="font-mono text-xs font-medium text-blue-600">
-                  {b.commit}
-                </span>
-
-                <span className="flex items-center gap-1 text-xs text-slate-500">
-                  <Clock size={12} />
-                  {b.duration}
-                </span>
-
-              </div>
-
-            ))}
-
-          </div>
-        </Card>
-
-
-        {/* Deployment Status */}
-        <Card className="border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-
-          <div className="mb-5">
-
-            <h2 className="text-base font-bold text-slate-900">
-              Deployment Status
-            </h2>
-
-            <p className="mt-1 text-xs text-slate-500">
-              CartForge deployment environment
+    <main className="min-h-full overflow-x-hidden bg-[#020e1c] px-4 py-6 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1800px] space-y-6">
+        <section className="flex flex-col justify-between gap-6 xl:flex-row xl:items-center">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">
+              <Activity size={15} /> CARTFORGE WORKSPACE
             </p>
-
-          </div>
-
-          <div className="space-y-3">
-
-            {PIPELINES.filter((p) => p.enabled).map((p) => (
-
-              <div
-                key={p.id}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-              >
-
-                <div className="flex items-center justify-between gap-3">
-
-                  <span className="truncate text-sm font-bold text-slate-900">
-                    {p.name}
-                  </span>
-
-                  <Badge variant="success">
-                    Deployed
-                  </Badge>
-
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-
-                  <span className="text-xs text-slate-500">
-                    {p.repository}
-                  </span>
-
-                  <span className="text-xs font-medium text-slate-700">
-                    {p.branch}
-                  </span>
-
-                </div>
-
-              </div>
-
-            ))}
-
-          </div>
-
-
-          {/* Disk Usage */}
-          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-
-            <div className="flex items-center gap-2">
-
-              <HardDrive
-                size={17}
-                className="text-slate-600"
-              />
-
-              <span className="text-sm font-semibold text-slate-800">
-                Jenkins Disk Usage
-              </span>
-
-            </div>
-
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-
-              <div
-                className="h-full rounded-full bg-blue-600"
-                style={{ width: '41%' }}
-              />
-
-            </div>
-
-            <p className="mt-2 text-xs text-slate-500">
-              41% of available storage used
+            <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
+              Welcome to CartForge <span aria-hidden="true">👋</span>
+            </h1>
+            <p className="mt-3 text-base text-blue-200 sm:text-lg">
+              Cloud &amp; DevOps Learning Workspace
             </p>
-
           </div>
 
-        </Card>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <SummaryCard icon={BookOpen} value="9" label="Learning Modules" color="text-blue-400" />
+            <SummaryCard icon={Server} value="Explore" label="Services & Labs" color="text-sky-400" />
+            <SummaryCard icon={Zap} value="CI/CD" label="Pipeline Tools" color="text-amber-400" />
+          </div>
+        </section>
 
-      </div>
+        <section>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-white sm:text-2xl">Learning Modules</h2>
+              <p className="mt-1 text-sm text-slate-400">Choose a tool to open its interactive workspace.</p>
+            </div>
+            <span className="rounded-full border border-cyan-800 bg-cyan-950/50 px-3 py-1.5 text-xs font-semibold text-cyan-300">
+              {modules.length} MODULES
+            </span>
+          </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {modules.map((module) => {
+              return (
+                <button
+                  key={module.key}
+                  type="button"
+                  onClick={() => onNavigate(module.key)}
+                  aria-label={`Open ${module.title}`}
+                  className={[
+                    'group relative flex min-h-[245px] flex-col overflow-hidden rounded-2xl border p-5 text-left',
+                    'bg-gradient-to-br from-[#0b1d32] via-[#08182b] to-[#061426]',
+                    'transition duration-200 hover:-translate-y-1 hover:border-cyan-500/70 hover:shadow-xl hover:shadow-cyan-950/30',
+                    'focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-[#020e1c]',
+                    module.featured ? 'border-emerald-500/50' : 'border-[#193653]',
+                  ].join(' ')}
+                >
+                  <div className="pointer-events-none absolute -right-3 top-7 opacity-[0.10] transition group-hover:opacity-20">
+                    {module.logoUrls.length === 1 ? (
+                      <img src={module.logoUrls[0]} alt="" aria-hidden="true" className="h-28 w-28 object-contain" />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {module.logoUrls.map((url) => <img key={url} src={url} alt="" aria-hidden="true" className="h-20 w-20 object-contain" />)}
+                      </div>
+                    )}
+                  </div>
 
-      {/* =========================
-          QUICK ACCESS
-      ========================== */}
-      <Card className="border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="relative flex w-full items-start justify-between gap-3">
+                    <div className={`flex h-16 w-16 shrink-0 items-center justify-center gap-1 rounded-2xl border border-white/10 bg-[#132b45] p-2 ${module.iconColor}`}>
+                      {module.logoUrls.map((url) => <img key={url} src={url} alt={`${module.title} logo`} loading="eager" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} className={module.logoUrls.length > 1 ? "h-7 w-7 object-contain" : "h-11 w-11 object-contain"} />)}
+                    </div>
+                    {module.featured ? (
+                      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-bold text-emerald-300">
+                        <ShieldCheck size={12} className="mr-1 inline" />
+                        SAFE SIMULATION
+                      </span>
+                    ) : (
+                      <ArrowUpRight size={19} className="text-slate-500 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-cyan-300" />
+                    )}
+                  </div>
 
-        <div className="mb-5">
+                  <div className="relative mt-5">
+                    <h3 className="text-lg font-bold text-slate-50">{module.title}</h3>
+                    <p className="mt-2 text-sm leading-5 text-blue-100/70">{module.description}</p>
+                  </div>
 
-          <h2 className="text-base font-bold text-slate-900">
-            Quick Access
-          </h2>
+                  <div className="relative mt-auto flex items-center justify-between gap-3 pt-5">
+                    <span className="flex items-center gap-2 text-xs font-medium text-emerald-300">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                      {module.status}
+                    </span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#14345f] text-white transition group-hover:bg-blue-600">
+                      <ArrowRight size={17} />
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-          <p className="mt-1 text-xs text-slate-500">
-            Jump to important Jenkins sections
-          </p>
-
-        </div>
-
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-
-          {[
-            {
-              label: 'Pipelines',
-              icon: Workflow,
-              color: 'text-blue-600',
-              bg: 'bg-blue-50',
-              tab: 'pipelines',
-            },
-            {
-              label: 'Agents',
-              icon: Server,
-              color: 'text-green-600',
-              bg: 'bg-green-50',
-              tab: 'agents',
-            },
-            {
-              label: 'Webhooks',
-              icon: GitBranch,
-              color: 'text-orange-500',
-              bg: 'bg-orange-50',
-              tab: 'webhooks',
-            },
-            {
-              label: 'Plugins',
-              icon: Plug,
-              color: 'text-purple-600',
-              bg: 'bg-purple-50',
-              tab: 'plugins',
-            },
-            {
-              label: 'Credentials',
-              icon: ShieldCheck,
-              color: 'text-cyan-600',
-              bg: 'bg-cyan-50',
-              tab: 'credentials',
-            },
-            {
-              label: 'Artifacts',
-              icon: Database,
-              color: 'text-rose-600',
-              bg: 'bg-rose-50',
-              tab: 'artifacts',
-            },
-          ].map((item) => (
-
-            <button
-              key={item.label}
-              onClick={() => onNavigate('jenkins')}
-              className="group flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-sm"
-            >
-
-              <div className={`rounded-lg p-2 ${item.bg}`}>
-                <item.icon
-                  size={18}
-                  className={item.color}
-                />
+        <section className="overflow-hidden rounded-2xl border border-[#193653] bg-gradient-to-r from-[#0a1b30] to-[#061426]">
+          <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_2fr_1fr]">
+            <div className="flex flex-col justify-center border-b border-[#193653] p-5 sm:p-6 xl:border-b-0 xl:border-r">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                  <Rocket size={27} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">CI/CD Pipeline</h2>
+                  <p className="mt-1 text-xs text-blue-200">Code to deployment</p>
+                </div>
               </div>
+              <p className="mt-3 text-sm leading-5 text-slate-400">
+                Open each tool to inspect your pipeline workflow and results.
+              </p>
+            </div>
 
-              <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900">
-                {item.label}
-              </span>
+            <div className="flex items-center justify-around gap-1 border-b border-[#193653] px-2 py-5 sm:px-4 xl:border-b-0 xl:border-r">
+              {pipelineStages.map((stage, index) => {
+                return (
+                  <div key={stage.name} className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onNavigate(stage.key)}
+                      className="group flex min-w-0 flex-col items-center gap-2 rounded-xl p-2 transition hover:bg-blue-500/10 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    >
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-500/50 bg-[#102743] text-blue-300 transition group-hover:border-cyan-400 group-hover:text-cyan-300 sm:h-14 sm:w-14">
+                        <img src={stage.logoUrl} alt={`${stage.name} logo`} className="h-9 w-9 object-contain" loading="eager" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
+                      </span>
+                      <span className="text-xs font-semibold text-white sm:text-sm">{stage.name}</span>
+                      <span className="text-center text-[10px] text-blue-300 sm:text-xs">{stage.detail}</span>
+                    </button>
+                    {index < pipelineStages.length - 1 && <ArrowRight size={16} className="shrink-0 text-blue-500" />}
+                  </div>
+                );
+              })}
+            </div>
 
-            </button>
+            <div className="flex flex-col justify-center gap-3 p-5 sm:p-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-cyan-300">
+                <Activity size={17} /> Pipeline workspace
+              </div>
+              <p className="text-sm leading-5 text-slate-400">
+                Build and deployment status should be verified in the connected Jenkins and Kubernetes modules.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigate('jenkins')}
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-500/60 bg-blue-600/10 px-4 py-2.5 text-sm font-semibold text-sky-300 transition hover:bg-blue-600/25 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              >
+                View Pipeline <ArrowUpRight size={16} />
+              </button>
+            </div>
+          </div>
+        </section>
 
-          ))}
-
-        </div>
-
-      </Card>
-
-    </div>
+        <footer className="flex flex-wrap items-center gap-2 border-t border-[#193653] pt-4 text-xs text-slate-400">
+          <ShieldCheck size={16} className="text-emerald-400" />
+          AWS Labs are in simulation mode. This dashboard does not provision real AWS resources.
+        </footer>
+      </div>
+    </main>
   );
 }
 
+function SummaryCard({
+  icon: Icon,
+  value,
+  label,
+  color,
+}: {
+  icon: LucideIcon;
+  value: string;
+  label: string;
+  color: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#193653] bg-gradient-to-br from-[#0b1d32] to-[#071528] px-4 py-4 sm:min-w-[145px]">
+      <Icon size={28} className={`shrink-0 ${color}`} />
+      <div>
+        <p className="text-xl font-bold text-white">{value}</p>
+        <p className="mt-1 whitespace-nowrap text-xs text-blue-200">{label}</p>
+      </div>
+    </div>
+  );
+}
